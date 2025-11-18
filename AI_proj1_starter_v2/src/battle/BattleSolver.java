@@ -15,7 +15,13 @@ public class BattleSolver {
 
     public  String  solve(String initialStateString, boolean ab, boolean visualize){
         initialNode = getInitialNode(initialStateString);
-        int score = minimax(initialNode);
+        nodesExpanded = 0;
+        int score;
+        if (ab) {
+            score = minimaxAlphaBeta(initialNode, Integer.MIN_VALUE, Integer.MAX_VALUE);
+        } else {
+            score = minimax(initialNode);
+        }
         String plan = writePlan(initialNode);
         return (plan + ";"+ score + ";" + nodesExpanded);
     }
@@ -122,10 +128,65 @@ public class BattleSolver {
         }
     }
 
+    // Minimax with Alpha-Beta Pruning
+    public int minimaxAlphaBeta(Node node, int alpha, int beta) {
+        if (node.isTerminal()) {
+            node.setValue(computeUtility(node, initialNode.getPlayerTurn()));
+            return node.value;
+        }
+        nodesExpanded += 1;
+        Node bestChild = null;
+
+        if (node.getPlayerTurn() == initialNode.getPlayerTurn()) { // MAX player
+            int maxValue = Integer.MIN_VALUE;
+            for (Node child : getChildren(node)) {
+                int childValue = minimaxAlphaBeta(child, alpha, beta);
+
+                if (childValue > maxValue) {
+                    maxValue = childValue;
+                    bestChild = child;
+                }
+
+                // Update Alpha
+                alpha = Math.max(alpha, maxValue);
+
+                // Pruning condition
+                if (maxValue >= beta) {
+                    break;
+                }
+            }
+            node.setBestChild(bestChild);
+            node.setValue(maxValue);
+            return maxValue;
+        } else { // MIN player
+            int minValue = Integer.MAX_VALUE;
+            for (Node child : getChildren(node)) {
+                int childValue = minimaxAlphaBeta(child, alpha, beta);
+
+                if (childValue < minValue) {
+                    minValue = childValue;
+                    bestChild = child;
+                }
+
+                // Update Beta
+                beta = Math.min(beta, minValue);
+
+                // Pruning condition
+                if (minValue <= alpha) {
+                    break;
+                }
+            }
+            node.setBestChild(bestChild);
+            node.setValue(minValue);
+            return minValue;
+        }
+    }
+
     public  String writePlan(Node root){
         StringBuilder plan = new StringBuilder();
         Node currentNode = root;
         while (!(currentNode.isTerminal())){
+            if (currentNode.getBestChild() == null) break;
             plan.append(currentNode.getBestChild().getAction()).append(",");
             currentNode = currentNode.getBestChild();
         }
